@@ -1,64 +1,77 @@
-import { createReadStream, readFileSync } from "fs";
-import { createDecipheriv } from "crypto";
-import { createUnzip } from "zlib";
-import * as path from "path";
 import { Transform, TransformCallback } from "stream";
-import * as readline from "readline";
-class DevideSentences extends Transform {
+import { task1 } from "./task1";
+
+class SentencesSumsChunkwise extends Transform {
   constructor() {
     super({ readableObjectMode: true, writableObjectMode: true });
   }
-
   _transform(chunk: Buffer, encoding: string, next: TransformCallback) {
-    return next(null, chunk.toString("utf8").replace(/\./g, "\r\n"));
+    const sentences = chunk.toString("utf8").split(".");
+    const sums = sentences
+      .map((s) =>
+        s
+          .split("")
+          .map((i) => parseInt(i))
+          .filter((i) => !isNaN(i))
+          .reduce((acc, current) => (acc += current), 0)
+      )
+      .filter((sum) => sum > 0);
+    return sums.length ? next(null, sums) : next();
+  }
+}
+class ProcessSums extends Transform {
+  constructor() {
+    super({ readableObjectMode: true, writableObjectMode: true });
+  }
+  lastNumber = 0;
+  _transform(sums: number[], encoding: string, next: TransformCallback) {
+    const currentSums = sums.slice(0, sums.length - 1);
+    currentSums[0] += this.lastNumber;
+    currentSums.forEach((num) => this.push(num));
+    this.lastNumber = sums[sums.length - 1];
+    next();
   }
 }
 
 console.log("Here we go!");
-const unzip = createUnzip();
-const task1 = () => {
-  const ivPath = path.join(__dirname, "../iv.txt");
-  const secretPath = path.join(__dirname, "../secret.enc");
-  const keyPath = path.join(__dirname, "../secret.key");
-  const authPath = path.join(__dirname, "../auth.txt");
-  const key = readFileSync(keyPath, "utf8").substr(0, 32);
-  const iv = readFileSync(ivPath);
-  const authTag = readFileSync(authPath);
-  const readStream = createReadStream(secretPath);
-  const decrypt = createDecipheriv("aes-256-gcm", key, iv);
-  decrypt.setAuthTag(authTag);
-  return readStream.pipe(decrypt).pipe(unzip);
-};
 
-const devideSentences = new DevideSentences();
+const sentencesSumsChunkwise = new SentencesSumsChunkwise();
+const processSums = new ProcessSums();
 
-const task4a = async () => {
+// [110, 111, 100, 101, 106, 115, 64, 114, 101, 100]
+const task4a = async (): Promise<number[]> => {
   const sums: number[] = [];
-  const input = task1().pipe(devideSentences);
-  const rl = readline.createInterface({ input, crlfDelay: Infinity });
-
-  for await (const line of rl) {
-    const sum = line
-      .split("")
-      .map((i) => parseInt(i))
-      .filter((i) => !isNaN(i))
-      .reduce((acc, current) => (acc += current), 0);
-    sums.push(sum);
-  }
-  const result = sums
-    .map((val, index) => [val, index])
-    .sort((a, b) => b[0] - a[0])
-    .slice(0, 10)
-    .sort((a, b) => a[1] - b[1])
-    .map(([val, index]) => val - index);
-  console.log("the 10 biggest sums minus their indexes:", result);
-  return result;
+  return new Promise((resolve) => {
+    task1()
+      .pipe(sentencesSumsChunkwise)
+      .pipe(processSums)
+      .on("data", (num: number) => sums.push(num))
+      .on("end", () =>
+        resolve(
+          sums
+            .map((val, index) => [val, index])
+            .sort((a, b) => b[0] - a[0])
+            .slice(0, 10)
+            .sort((a, b) => a[1] - b[1])
+            .map(([val, _originalIndex]) => val)
+            .map((val, index) => val - index)
+        )
+      );
+  });
 };
 
-const task4b = () => {
+// the word is:
+// nodejs@red
+export const task4b = () =>
   task4a()
-    .then((numbers) => numbers.map((num) => String.fromCharCode(num)).join(""))
-    .then((word) => console.log(word));
-};
+    .then((sums) => {
+      console.log("sums", sums);
+      return sums;
+    })
+    .then((sums) => sums.map((sum) => String.fromCharCode(sum)).join(""))
+    .then((word) => {
+      console.log("the word is:", word);
+      return word;
+    });
 
 task4b();

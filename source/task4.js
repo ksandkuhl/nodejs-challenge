@@ -1,24 +1,37 @@
 "use strict";
-var __asyncValues = (this && this.__asyncValues) || function (o) {
-    if (!Symbol.asyncIterator) throw new TypeError("Symbol.asyncIterator is not defined.");
-    var m = o[Symbol.asyncIterator], i;
-    return m ? m.call(o) : (o = typeof __values === "function" ? __values(o) : o[Symbol.iterator](), i = {}, verb("next"), verb("throw"), verb("return"), i[Symbol.asyncIterator] = function () { return this; }, i);
-    function verb(n) { i[n] = o[n] && function (v) { return new Promise(function (resolve, reject) { v = o[n](v), settle(resolve, reject, v.done, v.value); }); }; }
-    function settle(resolve, reject, d, v) { Promise.resolve(v).then(function(v) { resolve({ value: v, done: d }); }, reject); }
-};
 Object.defineProperty(exports, "__esModule", { value: true });
 const fs_1 = require("fs");
 const crypto_1 = require("crypto");
 const zlib_1 = require("zlib");
 const path = require("path");
 const stream_1 = require("stream");
-const readline = require("readline");
-class DevideSentences extends stream_1.Transform {
+class SentencesSumsChunkwise extends stream_1.Transform {
     constructor() {
         super({ readableObjectMode: true, writableObjectMode: true });
     }
     _transform(chunk, encoding, next) {
-        return next(null, chunk.toString("utf8").replace(/\./g, "\r\n"));
+        const sentences = chunk.toString("utf8").split(".");
+        const sums = sentences
+            .map((s) => s
+            .split("")
+            .map((i) => parseInt(i))
+            .filter((i) => !isNaN(i))
+            .reduce((acc, current) => (acc += current), 0))
+            .filter((sum) => sum > 0);
+        return sums.length ? next(null, sums) : next();
+    }
+}
+class ProcessSums extends stream_1.Transform {
+    constructor() {
+        super({ readableObjectMode: true, writableObjectMode: true });
+        this.lastNumber = 0;
+    }
+    _transform(sums, encoding, next) {
+        const currentSums = sums.slice(0, sums.length - 1);
+        currentSums[0] += this.lastNumber;
+        currentSums.forEach((num) => this.push(num));
+        this.lastNumber = sums[sums.length - 1];
+        next();
     }
 }
 console.log("Here we go!");
@@ -36,42 +49,34 @@ const task1 = () => {
     decrypt.setAuthTag(authTag);
     return readStream.pipe(decrypt).pipe(unzip);
 };
-const devideSentences = new DevideSentences();
+const sentencesSumsChunkwise = new SentencesSumsChunkwise();
+const processSums = new ProcessSums();
 const task4a = async () => {
-    var e_1, _a;
     const sums = [];
-    const input = task1().pipe(devideSentences);
-    const rl = readline.createInterface({ input, crlfDelay: Infinity });
-    try {
-        for (var rl_1 = __asyncValues(rl), rl_1_1; rl_1_1 = await rl_1.next(), !rl_1_1.done;) {
-            const line = rl_1_1.value;
-            const sum = line
-                .split("")
-                .map((i) => parseInt(i))
-                .filter((i) => !isNaN(i))
-                .reduce((acc, current) => (acc += current), 0);
-            sums.push(sum);
-        }
-    }
-    catch (e_1_1) { e_1 = { error: e_1_1 }; }
-    finally {
-        try {
-            if (rl_1_1 && !rl_1_1.done && (_a = rl_1.return)) await _a.call(rl_1);
-        }
-        finally { if (e_1) throw e_1.error; }
-    }
-    const result = sums
-        .map((val, index) => [val, index])
-        .sort((a, b) => b[0] - a[0])
-        .slice(0, 10)
-        .sort((a, b) => a[1] - b[1])
-        .map(([val, index]) => val - index);
-    console.log("the 10 biggest sums minus their indexes:", result);
-    return result;
+    return new Promise((resolve) => {
+        task1()
+            .pipe(sentencesSumsChunkwise)
+            .pipe(processSums)
+            .on("data", (num) => sums.push(num))
+            .on("end", () => resolve(sums
+            .map((val, index) => [val, index])
+            .sort((a, b) => b[0] - a[0])
+            .slice(0, 10)
+            .sort((a, b) => a[1] - b[1])
+            .map(([val, _originalIndex]) => val)
+            .map((val, index) => val - index)));
+    });
 };
-const task4b = () => {
-    task4a()
-        .then((numbers) => numbers.map((num) => String.fromCharCode(num)).join(""))
-        .then((word) => console.log(word));
-};
+// the word is:
+// nodejs@red
+const task4b = () => task4a()
+    .then((sums) => {
+    console.log("sums", sums);
+    return sums;
+})
+    .then((sums) => sums.map((sum) => String.fromCharCode(sum)).join(""))
+    .then((word) => {
+    console.log("the word is:", word);
+    return word;
+});
 task4b();

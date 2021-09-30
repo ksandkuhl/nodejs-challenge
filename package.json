@@ -7,7 +7,7 @@
     "typescript": "^3.7.5"
   },
   "scripts": {
-    "start": "node source/index.js",
+    "start": "tsc && node source/index.js",
     "build-source": "node node_modules/typescript/bin/tsc -p source/tsconfig.json",
     "build-source-watch": "node node_modules/typescript/bin/tsc -w -p source/tsconfig.json",
     "build-source-debug": "node node_modules/typescript/bin/tsc -p source/tsconfig.debug.json",

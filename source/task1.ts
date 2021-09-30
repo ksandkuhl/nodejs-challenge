@@ -5,7 +5,7 @@ import * as path from "path";
 
 console.log("Here we go!");
 const unzip = createUnzip();
-const task1 = () => {
+export const task1 = () => {
   const ivPath = path.join(__dirname, "../iv.txt");
   const secretPath = path.join(__dirname, "../secret.enc");
   const keyPath = path.join(__dirname, "../secret.key");

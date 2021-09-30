@@ -1,5 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.task1 = void 0;
 const fs_1 = require("fs");
 const crypto_1 = require("crypto");
 const zlib_1 = require("zlib");
@@ -19,10 +20,11 @@ const task1 = () => {
     decrypt.setAuthTag(authTag);
     return readStream.pipe(decrypt).pipe(unzip);
 };
+exports.task1 = task1;
 const writeTask1ToDisk = () => {
     const reveiledPath = path.join(__dirname, "../secret.dec");
     const writeStream = (0, fs_1.createWriteStream)(reveiledPath);
-    task1()
+    (0, exports.task1)()
         .pipe(writeStream)
         .on("finish", () => console.log("finished writing"));
 };
