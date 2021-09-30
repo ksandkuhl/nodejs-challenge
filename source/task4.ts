@@ -33,8 +33,6 @@ class ProcessSums extends Transform {
   }
 }
 
-console.log("Here we go!");
-
 const sentencesSumsChunkwise = new SentencesSumsChunkwise();
 const processSums = new ProcessSums();
 

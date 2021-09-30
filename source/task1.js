@@ -6,8 +6,8 @@ const crypto_1 = require("crypto");
 const zlib_1 = require("zlib");
 const path = require("path");
 console.log("Here we go!");
-const unzip = (0, zlib_1.createUnzip)();
 const task1 = () => {
+    const unzip = (0, zlib_1.createUnzip)();
     const ivPath = path.join(__dirname, "../iv.txt");
     const secretPath = path.join(__dirname, "../secret.enc");
     const keyPath = path.join(__dirname, "../secret.key");

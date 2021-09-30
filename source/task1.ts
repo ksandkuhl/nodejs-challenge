@@ -3,9 +3,8 @@ import { createDecipheriv } from "crypto";
 import { createUnzip } from "zlib";
 import * as path from "path";
 
-console.log("Here we go!");
-const unzip = createUnzip();
 export const task1 = () => {
+  const unzip = createUnzip();
   const ivPath = path.join(__dirname, "../iv.txt");
   const secretPath = path.join(__dirname, "../secret.enc");
   const keyPath = path.join(__dirname, "../secret.key");
