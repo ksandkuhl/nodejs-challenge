@@ -1,10 +1,8 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-const fs_1 = require("fs");
-const crypto_1 = require("crypto");
-const zlib_1 = require("zlib");
-const path = require("path");
+exports.task4b = void 0;
 const stream_1 = require("stream");
+const task1_1 = require("./task1");
 class SentencesSumsChunkwise extends stream_1.Transform {
     constructor() {
         super({ readableObjectMode: true, writableObjectMode: true });
@@ -35,26 +33,13 @@ class ProcessSums extends stream_1.Transform {
     }
 }
 console.log("Here we go!");
-const unzip = (0, zlib_1.createUnzip)();
-const task1 = () => {
-    const ivPath = path.join(__dirname, "../iv.txt");
-    const secretPath = path.join(__dirname, "../secret.enc");
-    const keyPath = path.join(__dirname, "../secret.key");
-    const authPath = path.join(__dirname, "../auth.txt");
-    const key = (0, fs_1.readFileSync)(keyPath, "utf8").substr(0, 32);
-    const iv = (0, fs_1.readFileSync)(ivPath);
-    const authTag = (0, fs_1.readFileSync)(authPath);
-    const readStream = (0, fs_1.createReadStream)(secretPath);
-    const decrypt = (0, crypto_1.createDecipheriv)("aes-256-gcm", key, iv);
-    decrypt.setAuthTag(authTag);
-    return readStream.pipe(decrypt).pipe(unzip);
-};
 const sentencesSumsChunkwise = new SentencesSumsChunkwise();
 const processSums = new ProcessSums();
+// [110, 111, 100, 101, 106, 115, 64, 114, 101, 100]
 const task4a = async () => {
     const sums = [];
     return new Promise((resolve) => {
-        task1()
+        (0, task1_1.task1)()
             .pipe(sentencesSumsChunkwise)
             .pipe(processSums)
             .on("data", (num) => sums.push(num))
@@ -79,4 +64,5 @@ const task4b = () => task4a()
     console.log("the word is:", word);
     return word;
 });
-task4b();
+exports.task4b = task4b;
+(0, exports.task4b)();
